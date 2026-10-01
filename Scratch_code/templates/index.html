@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nova AI - Intelligent Conversational Assistant</title>
+  <meta name="description" content="A modern, intelligent conversational AI assistant with multi-persona reasoning, coding support, and real-time streaming answers.">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>✨</text></svg>">
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+
+  <div class="app-container">
+    <!-- ===================================================================
+         SIDEBAR: CONVERSATION HISTORY & NAVIGATION
+         =================================================================== -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <div class="app-brand">
+          <div class="brand-icon-badge">✨</div>
+          <span>Nova AI</span>
+        </div>
+        <button class="btn-icon btn-menu-toggle" id="btnCloseMobileSidebar" title="Close Sidebar">✕</button>
+      </div>
+
+      <!-- New Chat Button -->
+      <button class="btn-new-chat" id="btnNewChat">
+        <span>+</span>
+        <span>New Chat</span>
+      </button>
+
+      <!-- Scrollable Conversation List -->
+      <div class="conversations-scroll" id="conversationsList">
+        <!-- Dynamically populated via loadConversations() -->
+      </div>
+
+      <!-- Sidebar Footer -->
+      <div class="sidebar-footer">
+        <button class="theme-toggle-btn" id="btnThemeToggle">
+          <span id="themeIcon">☀️</span>
+          <span id="themeText">Light Mode</span>
+        </button>
+        <button class="btn-icon settings-footer-btn" id="btnOpenSettings" title="Settings">⚙️</button>
+      </div>
+    </aside>
+
+    <!-- ===================================================================
+         CHAT WORKSPACE
+         =================================================================== -->
+    <main class="chat-workspace">
+      <!-- Top Navigation -->
+      <header class="chat-top-nav">
+        <div class="top-nav-left">
+          <button class="btn-icon btn-menu-toggle" id="btnToggleSidebar" title="Open Sidebar">☰</button>
+
+          <!-- Model / Persona Selector -->
+          <div class="persona-selector-container">
+            <button class="persona-pill-btn" id="personaBtn" title="Switch AI Persona">
+              <span id="personaIcon">✨</span>
+              <span id="personaName">Nova Assistant</span>
+              <span style="font-size: 10px; opacity: 0.6; margin-left: 2px;">▼</span>
+            </button>
+
+            <!-- Dropdown Options -->
+            <div class="persona-dropdown-menu" id="personaDropdown">
+              <!-- Populated via loadPersonas() -->
+            </div>
+          </div>
+        </div>
+
+        <div class="top-nav-right">
+          <!-- AI Provider Status Pill Button -->
+          <button class="ai-status-pill-btn" id="btnAiSettings" title="Configure Real AI (Google Gemini)">
+            <span id="aiStatusIcon">🔑</span>
+            <span id="aiStatusText">Connect Gemini AI</span>
+          </button>
+
+          <button class="btn-icon" id="btnClearChat" title="Clear current messages">🗑️</button>
+        </div>
+      </header>
+
+      <!-- Messages Scroll Area -->
+      <div class="messages-container" id="messagesContainer">
+        <div class="messages-content-wrapper" id="messagesContent">
+          
+          <!-- Empty State / Welcome Screen -->
+          <div class="empty-chat-welcome" id="emptyChatWelcome">
+            <div class="welcome-badge-icon">✨</div>
+            <h1 class="welcome-title">How can I help you today?</h1>
+            <p class="welcome-subtitle">Select a starter prompt or type any question to begin an intelligent conversation.</p>
+
+            <div class="starter-prompts-grid">
+              <div class="starter-prompt-card" data-prompt="Write a clean Python script demonstrating asynchronous task queues and error handling.">
+                <div class="prompt-icon">💻</div>
+                <div>
+                  <div class="prompt-title">Write Python Code</div>
+                  <div class="prompt-desc">Async task queues with error handling</div>
+                </div>
+              </div>
+
+              <div class="starter-prompt-card" data-prompt="Explain how transformers and attention mechanisms work in modern AI.">
+                <div class="prompt-icon">🧠</div>
+                <div>
+                  <div class="prompt-title">Explain AI Concepts</div>
+                  <div class="prompt-desc">How attention mechanisms work</div>
+                </div>
+              </div>
+
+              <div class="starter-prompt-card" data-prompt="Write a short, suspenseful sci-fi story about a rogue satellite transmission.">
+                <div class="prompt-icon">🚀</div>
+                <div>
+                  <div class="prompt-title">Creative Story</div>
+                  <div class="prompt-desc">Suspenseful sci-fi transmission tale</div>
+                </div>
+              </div>
+
+              <div class="starter-prompt-card" data-prompt="Give me an executive summary and action plan for optimizing database query performance.">
+                <div class="prompt-icon">⚡</div>
+                <div>
+                  <div class="prompt-title">Performance Optimization</div>
+                  <div class="prompt-desc">Executive plan for database speed</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Input Composer Area -->
+      <div class="input-composer-area">
+        <div class="composer-box">
+          <textarea 
+            id="chatTextarea" 
+            class="composer-textarea" 
+            placeholder="Ask anything... (Shift + Enter for new line)" 
+            rows="1"
+            autocomplete="off"
+            spellcheck="true"
+          ></textarea>
+
+          <div class="composer-toolbar">
+            <div class="composer-toolbar-left">
+              <button class="btn-toolbar" id="btnVoiceInput" title="Dictate with voice (Speech-to-Text)">🎙️</button>
+            </div>
+
+            <button class="btn-send-message" id="btnSendMessage" disabled title="Send message">
+              <span>↑</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- ===================================================================
+       MODAL: SETTINGS
+       =================================================================== -->
+  <div class="modal-overlay" id="settingsModal" role="dialog" aria-modal="true" aria-labelledby="settingsModalTitle">
+    <div class="modal-dialog settings-modal-dialog">
+      <div class="modal-header">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span style="font-size: 24px;">⚙️</span>
+          <div>
+            <h3 id="settingsModalTitle" style="font-size: 1.15rem; font-weight: 700; color: var(--text-primary);">Settings</h3>
+            <p style="font-size: 0.82rem; color: var(--text-secondary); margin-top: 2px;">Customize your Nova AI experience</p>
+          </div>
+        </div>
+        <button class="btn-icon" id="btnCloseSettings" title="Close">✕</button>
+      </div>
+
+      <!-- Settings Tabs -->
+      <div class="settings-tabs">
+        <button class="settings-tab active" data-tab="appearance">🎨 Appearance</button>
+        <button class="settings-tab" data-tab="chat">💬 Chat</button>
+        <button class="settings-tab" data-tab="voice">🎙️ Voice</button>
+        <button class="settings-tab" data-tab="data">🗄️ Data</button>
+      </div>
+
+      <div class="modal-body settings-modal-body">
+
+        <!-- ── TAB: Appearance ── -->
+        <div class="settings-panel active" id="tab-appearance">
+
+          <div class="settings-group">
+            <div class="settings-group-label">Theme</div>
+            <div class="settings-row">
+              <div class="settings-row-info">
+                <span class="settings-row-title">Color Mode</span>
+                <span class="settings-row-desc">Switch between dark and light interface</span>
+              </div>
+              <div class="theme-option-pills">
+                <button class="theme-pill active" id="pillDark" data-theme="dark">🌙 Dark</button>
+                <button class="theme-pill" id="pillLight" data-theme="light">☀️ Light</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="settings-group">
+            <div class="settings-group-label">Font Size</div>
+            <div class="settings-row">
+              <div class="settings-row-info">
+                <span class="settings-row-title">Message Text Size</span>
+                <span class="settings-row-desc">Adjust the reading comfort</span>
+              </div>
+              <select class="settings-select" id="selectFontSize">
+                <option value="small">Small (14px)</option>
+                <option value="medium" selected>Medium (15px)</option>
+                <option value="large">Large (17px)</option>
+                <option value="xlarge">X-Large (19px)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="settings-group">
+            <div class="settings-group-label">Density</div>
+            <div class="settings-row">
+              <div class="settings-row-info">
+                <span class="settings-row-title">Message Spacing</span>
+                <span class="settings-row-desc">Compact or airy layout</span>
+              </div>
+              <select class="settings-select" id="selectDensity">
+                <option value="compact">Compact</option>
+                <option value="default" selected>Default</option>
+                <option value="spacious">Spacious</option>
+              </select>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- ── TAB: Chat ── -->
+        <div class="settings-panel" id="tab-chat">
+
+          <div class="settings-group">
+            <div class="settings-group-label">Behavior</div>
+            <div class="settings-row">
+              <div class="settings-row-info">
+                <span class="settings-row-title">Send on Enter</span>
+                <span class="settings-row-desc">Press Enter to send (Shift+Enter for newline)</span>
+              </div>
+              <label class="settings-toggle" id="toggleEnterSend">
+                <input type="checkbox" id="chkEnterSend" checked>
+                <span class="toggle-track"><span class="toggle-thumb"></span></span>
+              </label>
+            </div>
+            <div class="settings-row">
+              <div class="settings-row-info">
+                <span class="settings-row-title">Auto-scroll to Latest</span>
+                <span class="settings-row-desc">Automatically scroll when new messages arrive</span>
+              </div>
+              <label class="settings-toggle">
+                <input type="checkbox" id="chkAutoScroll" checked>
+                <span class="toggle-track"><span class="toggle-thumb"></span></span>
+              </label>
+            </div>
+            <div class="settings-row">
+              <div class="settings-row-info">
+                <span class="settings-row-title">Show Typing Animation</span>
+                <span class="settings-row-desc">Animate the AI response word-by-word</span>
+              </div>
+              <label class="settings-toggle">
+                <input type="checkbox" id="chkTypingAnim" checked>
+                <span class="toggle-track"><span class="toggle-thumb"></span></span>
+              </label>
+            </div>
+          </div>
+
+          <div class="settings-group">
+            <div class="settings-group-label">Default Persona</div>
+            <div class="settings-row">
+              <div class="settings-row-info">
+                <span class="settings-row-title">Startup Persona</span>
+                <span class="settings-row-desc">Which AI persona to load on new chat</span>
+              </div>
+              <select class="settings-select" id="selectDefaultPersona">
+                <!-- Populated dynamically -->
+              </select>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- ── TAB: Voice ── -->
+        <div class="settings-panel" id="tab-voice">
+
+          <div class="settings-group">
+            <div class="settings-group-label">Speech Input</div>
+            <div class="settings-row">
+              <div class="settings-row-info">
+                <span class="settings-row-title">Language</span>
+                <span class="settings-row-desc">Language for microphone input</span>
+              </div>
+              <select class="settings-select" id="selectSpeechLang">
+                <option value="en-US">English (US)</option>
+                <option value="en-GB">English (UK)</option>
+                <option value="ms-MY">Malay (Malaysia)</option>
+                <option value="id-ID">Indonesian</option>
+                <option value="fr-FR">French</option>
+                <option value="de-DE">German</option>
+                <option value="es-ES">Spanish</option>
+                <option value="ja-JP">Japanese</option>
+                <option value="zh-CN">Chinese (Simplified)</option>
+                <option value="ar-SA">Arabic</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="settings-group">
+            <div class="settings-group-label">Text-to-Speech</div>
+            <div class="settings-row">
+              <div class="settings-row-info">
+                <span class="settings-row-title">Reading Speed</span>
+                <span class="settings-row-desc">How fast the AI reads responses aloud</span>
+              </div>
+              <select class="settings-select" id="selectSpeakRate">
+                <option value="0.8">Slow</option>
+                <option value="1.0">Normal</option>
+                <option value="1.05" selected>Slightly Fast</option>
+                <option value="1.3">Fast</option>
+                <option value="1.6">Very Fast</option>
+              </select>
+            </div>
+            <div class="settings-row">
+              <div class="settings-row-info">
+                <span class="settings-row-title">Auto-read Responses</span>
+                <span class="settings-row-desc">Automatically speak each AI reply</span>
+              </div>
+              <label class="settings-toggle">
+                <input type="checkbox" id="chkAutoSpeak">
+                <span class="toggle-track"><span class="toggle-thumb"></span></span>
+              </label>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- ── TAB: Data ── -->
+        <div class="settings-panel" id="tab-data">
+
+          <div class="settings-group">
+            <div class="settings-group-label">Conversation History</div>
+            <div class="settings-row align-top">
+              <div class="settings-row-info">
+                <span class="settings-row-title">Clear All Conversations</span>
+                <span class="settings-row-desc">Permanently delete all saved chat history from the server</span>
+              </div>
+              <button class="btn-danger-sm" id="btnClearAllHistory">🗑️ Clear All</button>
+            </div>
+          </div>
+
+          <div class="settings-group">
+            <div class="settings-group-label">Local Preferences</div>
+            <div class="settings-row align-top">
+              <div class="settings-row-info">
+                <span class="settings-row-title">Reset All Settings</span>
+                <span class="settings-row-desc">Restore all settings to their factory defaults</span>
+              </div>
+              <button class="btn-danger-sm" id="btnResetSettings">↺ Reset</button>
+            </div>
+          </div>
+
+          <div class="settings-group">
+            <div class="settings-group-label">About</div>
+            <div class="settings-about-card">
+              <div style="font-size: 28px;">✨</div>
+              <div>
+                <div style="font-weight: 700; color: var(--text-primary);">Nova AI</div>
+                <div style="font-size: 0.82rem; color: var(--text-muted); margin-top: 2px;">v1.0 · Built with Flask + Puter.js</div>
+                <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 4px;">Free AI powered by Puter · No API key needed</div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+      </div><!-- /.modal-body -->
+    </div><!-- /.modal-dialog -->
+  </div><!-- /#settingsModal -->
+
+  <!-- ===================================================================
+       MODAL: CONNECT REAL AI (GOOGLE GEMINI)
+       =================================================================== -->
+  <div class="modal-overlay" id="aiSettingsModal" role="dialog" aria-modal="true">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span style="font-size: 24px;">⚡</span>
+          <div>
+            <h3 style="font-size: 1.15rem; font-weight: 700; color: var(--text-primary);">Connect Real AI (Google Gemini)</h3>
+            <p style="font-size: 0.82rem; color: var(--text-secondary); margin-top: 2px;">Power this chatbot with Google's live multimodal Gemini LLM.</p>
+          </div>
+        </div>
+        <button class="btn-icon" id="btnCloseAiModal" title="Close">✕</button>
+      </div>
+
+      <div class="modal-body">
+        <div style="background: rgba(99, 102, 241, 0.08); border: 1px solid rgba(99, 102, 241, 0.2); border-radius: var(--radius-md); padding: 14px 16px; margin-bottom: 18px; font-size: 0.88rem; line-height: 1.5;">
+          <strong>💡 Free Google Gemini API Key:</strong><br>
+          You can generate a 100% free Gemini API key in 30 seconds at Google AI Studio.<br>
+          <a href="https://aistudio.google.com/apikey" target="_blank" rel="noreferrer" style="color: var(--accent-primary); font-weight: 600; text-decoration: underline; display: inline-block; margin-top: 4px;">
+            Get Free Gemini API Key &rarr;
+          </a>
+        </div>
+
+        <form id="aiKeyForm">
+          <label for="geminiApiKeyInput" style="display: block; font-size: 0.85rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 6px;">
+            Gemini API Key
+          </label>
+          <div style="position: relative; margin-bottom: 12px;">
+            <input 
+              type="password" 
+              id="geminiApiKeyInput" 
+              class="form-input" 
+              placeholder="AIzaSy..." 
+              required
+              autocomplete="off"
+            >
+            <button type="button" id="btnToggleKeyVisibility" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 14px;">
+              👁️
+            </button>
+          </div>
+
+          <div id="aiModalStatus" style="font-size: 0.84rem; margin-bottom: 14px; display: none;"></div>
+
+          <div style="display: flex; justify-content: flex-end; gap: 10px;">
+            <button type="button" class="btn-secondary" id="btnCancelAiModal">Cancel</button>
+            <button type="submit" class="btn-primary" id="btnSaveAiKey">
+              <span>Connect & Validate</span>
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- Puter.js: Free AI without API keys (uses user's Puter account) -->
+  <script src="https://js.puter.com/v2/"></script>
+  <script src="/static/js/chat.js"></script>
+</body>
+</html>
